@@ -21,11 +21,59 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import kotlin.random.Random
+
+// ViewModel para gerenciar o estado do jogo
+class GameViewModel : ViewModel() {
+    var numClicksNecessary by mutableStateOf(Random.nextInt(1, 51))
+    var clickAtual by mutableStateOf(0)
+    var imageAtual by mutableStateOf(R.drawable.inicio_da_jornada)
+    var messageConquista by mutableStateOf(false)
+    var messageDesistencia by mutableStateOf(false)
+
+    fun onImageClick() {
+        clickAtual++
+        imageAtual = when {
+            clickAtual.toFloat() / numClicksNecessary < 0.33 -> R.drawable.inicio_da_jornada
+            clickAtual.toFloat() / numClicksNecessary < 0.66 -> R.drawable.meio_do_caminho
+            clickAtual.toFloat() / numClicksNecessary < 1.0 -> R.drawable.fim_da_jornada
+            else -> R.drawable.comemorando
+        }
+
+        if (clickAtual >= numClicksNecessary) {
+            messageConquista = true
+        }
+    }
+
+    fun onDesistir() {
+        imageAtual = R.drawable.desistencia
+        messageDesistencia = true
+    }
+
+    fun restartGame() {
+        numClicksNecessary = Random.nextInt(1, 51)
+        clickAtual = 0
+        imageAtual = R.drawable.inicio_da_jornada
+        messageConquista = false
+    }
+
+    fun restartGameFromDesistencia() {
+        numClicksNecessary = Random.nextInt(1, 51)
+        clickAtual = 0
+        imageAtual = R.drawable.desistencia
+        messageDesistencia = false
+    }
+
+    fun closeMessages() {
+        messageConquista = false
+        messageDesistencia = false
+    }
+}
 
 // MainActivity é a classe principal da aplicação, que herda de ComponentActivity.
 class MainActivity : ComponentActivity() {
@@ -33,14 +81,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Define o conteúdo da tela usando Jetpack Compose.
         setContent {
-            // Aplica o tema da aplicação.
             MyApplicationTheme {
                 // Define um Surface como a tela principal.
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Chama a função composable JornadaTela para definir o conteúdo da tela.
                     JornadaTela()
                 }
             }
@@ -50,19 +96,17 @@ class MainActivity : ComponentActivity() {
 
 // Função composable que define o layout e a lógica da tela principal.
 @Composable
-fun JornadaTela() {
-    // Estados para gerenciar o número de cliques necessários, cliques atuais, imagem atual e mensagens de conquista/desistência.
-    var numClicksNecessary by remember { mutableStateOf(Random.nextInt(1, 51)) }
-    var clickAtual by remember { mutableStateOf(0) }
-    var imageAtual by remember { mutableStateOf(R.drawable.inicio_da_jornada) }
-    var messageConquista by remember { mutableStateOf(false) }
-    var messageDesistencia by remember { mutableStateOf(false) }
+fun JornadaTela(viewModel: GameViewModel = viewModel()) {
+    // Obtém os estados diretamente do ViewModel
+    val numClicksNecessary = viewModel.numClicksNecessary
+    val clickAtual = viewModel.clickAtual
+    val imageAtual = viewModel.imageAtual
+    val messageConquista = viewModel.messageConquista
+    val messageDesistencia = viewModel.messageDesistencia
 
-    // Box é usado para posicionar a imagem de fundo.
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Exibe a imagem de fundo que preenche toda a tela.
         Image(
             painter = painterResource(id = R.drawable.background),
             contentDescription = "Imagem de fundo",
@@ -71,7 +115,6 @@ fun JornadaTela() {
         )
     }
 
-    // Column é usado para organizar os elementos verticalmente.
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -79,82 +122,50 @@ fun JornadaTela() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Exibe uma mensagem se a imagem atual não for a de desistência.
-        if (imageAtual != R.drawable.desistencia){
+        if (imageAtual != R.drawable.desistencia) {
             Text(
                 text = "Clique na Imagem",
-                fontSize = 24.sp, // Tamanho da fonte
-                fontWeight = FontWeight.Bold, // Negrito
-                color = Color.Yellow, // Cor do texto
-                modifier = Modifier.padding(bottom = 16.dp) // Espaçamento abaixo do texto
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Yellow,
+                modifier = Modifier.padding(bottom = 16.dp)
             )
         }
 
-        // Exibe a imagem atual e a torna clicável.
         Image(
             painter = painterResource(id = imageAtual),
             contentDescription = "Imagem da Jornada",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(200.dp) // Tamanho da imagem
-                .clip(RoundedCornerShape(16.dp)) // Bordas arredondadas
-                .border(4.dp, Color.Black, RoundedCornerShape(16.dp)) // Borda preta
+                .size(200.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .border(4.dp, Color.Black, RoundedCornerShape(16.dp))
                 .clickable {
-                    // Atualiza o número de cliques e a imagem com base na proporção dos cliques realizados.
-                    clickAtual++
-                    imageAtual = when {
-                        clickAtual.toFloat() / numClicksNecessary < 0.33 -> R.drawable.inicio_da_jornada
-                        clickAtual.toFloat() / numClicksNecessary < 0.66 -> R.drawable.meio_do_caminho
-                        clickAtual.toFloat() / numClicksNecessary < 1.0 -> R.drawable.fim_da_jornada
-                        else -> R.drawable.comemorando
-                    }
-
-                    // Se o número de cliques atingir ou exceder o necessário, exibe a mensagem de conquista.
-                    if (clickAtual >= numClicksNecessary) {
-                        messageConquista = true
-                    }
+                    viewModel.onImageClick()
                 }
         )
 
-        // Espaço entre a imagem e o botão.
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botão para desistir do jogo.
         Button(onClick = {
-            imageAtual = R.drawable.desistencia
-            messageDesistencia = true
+            viewModel.onDesistir()
         }) {
             Text("Desistir")
         }
 
-        // Exibe uma caixa de diálogo de conquista se a variável messageConquista for verdadeira.
         if (messageConquista) {
             Finaldialogue(
                 finalMessage = "PARABENS PELA CONQUISTA!!!! quer jogar denovo?",
-                onNewGame = {
-                    // Reinicia o jogo com novos parâmetros.
-                    numClicksNecessary = Random.nextInt(1, 51)
-                    clickAtual = 0
-                    imageAtual = R.drawable.inicio_da_jornada
-                    messageConquista = false
-                }, onClose = {
-                    messageConquista = false
-                }
+                onNewGame = { viewModel.restartGame() },
+                onClose = { viewModel.closeMessages() }
             )
         }
 
-        // Exibe uma caixa de diálogo de desistência se a variável messageDesistencia for verdadeira.
         if (messageDesistencia) {
             Finaldialogue(
                 finalMessage = "Que pena que desistiu :(, quer tentar denovo?",
-                onNewGame = {
-                    // Reinicia o jogo com novos parâmetros e define a imagem de desistência.
-                    numClicksNecessary = Random.nextInt(1, 51)
-                    clickAtual = 0
-                    imageAtual = R.drawable.desistencia
-                    messageDesistencia = false
-                },
-                onClose = { messageDesistencia = false }
+                onNewGame = { viewModel.restartGameFromDesistencia() },
+                onClose = { viewModel.closeMessages() }
             )
         }
     }
