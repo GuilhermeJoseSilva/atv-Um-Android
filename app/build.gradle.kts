@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0") // Verifique a versão mais recente
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.0")
+    implementation ("androidx.activity:activity-compose:1.7.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
